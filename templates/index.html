@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#f6f7fb">
+    <meta name="description" content="20只重点宽基ETF资金观测：盘中分钟量能、托底信号、日度资金全景，红涨绿跌。">
+    <title>ETF资金观测 · 20只宽基ETF看板</title>
+    <link rel="stylesheet" href="/static/css/etf_momentum.css">
+    <link rel="stylesheet" href="/static/css/etf_flow_board.css">
+    <script src="/static/libs/echarts.min.js"></script>
+    <style>
+        .skip { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+                overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        .skip:focus { position: static; width: auto; height: auto; margin: 0; clip: auto;
+                      overflow: visible; padding: 8px 12px; background: #1a56a7; color: #fff; z-index: 99; }
+        .site-head { max-width: 1600px; margin: 0 auto; padding: 18px 20px 6px; }
+        .site-head h1 { margin: 0; font-size: 20px; font-weight: 700; color: #262626; }
+        .site-head p { margin: 6px 0 0; font-size: 12px; color: #8c8c8c; line-height: 1.6; }
+        .site-head a { color: #1a56a7; text-decoration: none; }
+        .site-head a:hover { text-decoration: underline; }
+        @media (max-width: 600px) { .site-head { padding: 14px 12px 4px; } .site-head h1 { font-size: 17px; } }
+    </style>
+</head>
+<body class="etf-momentum-page">
+<header class="site-head">
+    <h1>ETF资金观测 · 20只宽基ETF看板</h1>
+    <p>数据源：东方财富 / 腾讯 / 新浪公开行情接口 · 历史净流入为仓库内静态快照 ·
+       服务端缓存盘中 60 秒 / 盘外 5 分钟 · 仅供研究参考，不构成投资建议</p>
+</header>
+
+<main class="sa-page-shell ef-board">
+    <a class="skip" href="#part1">跳到主要内容</a>
+
+    <nav class="em-subnav" aria-label="看板分区">
+        <a class="em-subnav-item is-active" href="#part1" aria-current="page">盘中分钟观测</a>
+        <a class="em-subnav-item" href="#part2">ETF托底信号</a>
+        <a class="em-subnav-item" href="#part3">日度资金全景</a>
+    </nav>
+
+    <div id="efLoadError" class="ef-error" hidden></div>
+
+    <section class="part" id="part1">
+        <h2 class="pt">一 · 盘中分钟观测</h2>
+        <div class="sub">20只宽基ETF每分钟二级市场成交额加总（柱）与上证综指分钟收盘（线，右轴），虚线为上一交易日收盘；交易时段约 60 秒自动刷新。</div>
+        <div class="status" role="status" aria-live="polite">
+            <span class="tag" id="tagDate">--</span>
+            <span class="tag" id="tagUpdate">未加载</span>
+            <span class="tag" id="tagCountdown" style="display:none"></span>
+            <button id="btnRefresh" type="button">立即刷新</button>
+            <button id="btnPause" type="button" aria-pressed="false">暂停自动刷新</button>
+        </div>
+
+        <section class="chart-wrap"><div id="chart" class="chart" role="img" aria-label="20只ETF分钟成交额与上证综指分时图"></div></section>
+        <section class="chart-wrap"><div id="chartCum" class="chart" role="img" aria-label="20只ETF当日分钟累计成交额"></div></section>
+
+        <h2 class="pt" style="margin-top:20px">20大ETF放量案例</h2>
+        <div class="sub">放量案例日 = 单日净流入（申赎口径）&gt; 100 亿元的交易日；常态日 = 其余交易日。上证综指取相对当日开盘的涨跌幅均值。</div>
+        <section class="chart-wrap" style="margin-top:10px"><div id="chartTypCase" class="chart" role="img" aria-label="放量案例日 20大ETF量能与上证综指"></div></section>
+        <section class="chart-wrap"><div id="chartTypNorm" class="chart" role="img" aria-label="常态交易日 20大ETF量能与上证综指"></div></section>
+
+        <section class="table-wrap">
+            <h2>单只ETF当日表现（按成交额降序，条形背景按成交额相对最大值比例）</h2>
+            <div class="tscroll" tabindex="0">
+                <table>
+                    <caption class="sr-only">单只ETF当日成交额与涨跌幅</caption>
+                    <thead><tr>
+                        <th scope="col">代码</th>
+                        <th scope="col">名称</th>
+                        <th scope="col" class="num">当日成交额(亿)</th>
+                        <th scope="col" class="num">占比</th>
+                        <th scope="col" class="num">涨跌幅</th>
+                    </tr></thead>
+                    <tbody id="etfTable"></tbody>
+                </table>
+            </div>
+        </section>
+        <footer>
+            口径说明：柱状图为 20 只 ETF 每分钟二级市场成交金额加总；折线为上证综指分钟收盘点位。横轴固定为 09:30~15:00 全时段，非交易时段只展示已收盘数据、不再刷新，盘中数据约有分钟级延迟。
+        </footer>
+    </section>
+
+    <section class="part" id="part2">
+        <h2 class="pt">二 · ETF托底信号</h2>
+        <div class="sub">托底日 = 单日净流入 &gt; 100 亿（申赎口径），剔除 2024-09-24~10-18 狂热申购窗与 2026-01-14~01-30、02-02/13/26 抛售窗 ｜ 蓝柱=托底日，黄柱=近期交易日 ｜ 虚线=最新柱的数值水平线</div>
+        <div class="status" role="status" aria-live="polite">
+            <span class="tag live" id="tagAmt">--</span>
+            <span class="tag" id="tagNf">--</span>
+        </div>
+        <section class="chart-wrap"><div id="chartAmt" class="chart" role="img" aria-label="托底日成交额与最近交易日对比"></div></section>
+        <section class="chart-wrap"><div id="chartNf" class="chart" role="img" aria-label="托底日净流入与最近交易日对比"></div></section>
+        <footer>
+            方法说明：成交额图 = 托底日 + 最近 3 个交易日（当日为实时值）；净流入图 = 托底日 + 最近 2 个已公布日。虚线高度即最新值，可直接对照历史托底柱高判断所处位置。
+        </footer>
+    </section>
+
+    <section class="part" id="part3">
+        <h2 class="pt">三 · 日度资金全景</h2>
+        <div class="sub">当前篮子为 2026-10-15 换仓后的 20 只（沪深300 / 科创50 / 创业板 / 中证500 / 中证1000 / 中证A500 / 上证50 等）｜柱：20只ETF日度成交额与净流入（申赎口径）｜线：上证综指收盘</div>
+        <section class="chart-wrap" style="margin-top:10px"><div id="chartDAmt" class="chart" role="img" aria-label="20只ETF日度成交额与上证综指"></div></section>
+        <section class="chart-wrap"><div id="chartDNf" class="chart" role="img" aria-label="20只ETF日度净流入与上证综指"></div></section>
+        <section class="chart-wrap"><div id="chartBroad" class="chart" role="img" aria-label="全市场宽基ETF按跟踪指数堆积的日度净流入"></div></section>
+
+        <section class="table-wrap">
+            <h2>最近一个月 · 各类宽基ETF日度净流入（亿元，红=净申购 / 绿=净赎回，颜色深浅按当列相对大小）</h2>
+            <div class="tscroll" tabindex="0"><table id="broadTable"></table></div>
+        </section>
+        <footer>
+            口径说明：20只ETF日度成交额与净流入（申赎口径 = 当日份额变动 × 单位净值）历史序列；全市场宽基ETF（395只）日度净流入按跟踪指数堆积为 12 类，右轴黑线为 2026 年以来累计净流入。
+            数据来源：东方财富行情接口（分时与实时快照）及其策略观测看板的历史净流入序列。仅供研究参考，不构成投资建议。
+        </footer>
+    </section>
+
+    <div class="page-foot">
+        <span id="dataStamp"></span>
+        <span class="dot">·</span>
+        7 图 2 表 · 图表按需渲染 · 行情失败时保留最后一帧
+    </div>
+
+    <div id="boot" aria-hidden="true">
+        <div class="boot-inner">
+            <div class="boot-title"></div>
+            <div class="boot-chart"></div>
+            <div class="boot-chart short"></div>
+        </div>
+    </div>
+</main>
+
+<noscript>
+    <p style="padding:16px;background:#fff4e0;color:#9a5b00">看板依赖 JavaScript 绘制图表与拉取行情，请在浏览器中启用后重试。</p>
+</noscript>
+
+<script id="efBoardBoot"
+        src="/static/js/etf_flow_board_boot.js"
+        data-enhance="/static/js/etf_flow_board_enhance.js"
+        data-board="/static/js/etf_flow_board.js"></script>
+</body>
+</html>
